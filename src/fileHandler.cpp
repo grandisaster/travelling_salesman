@@ -53,6 +53,7 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
   std::vector<std::pair<double, double>> coords;
   bool reading_coords = false;
   std::string tspName;
+  std::string edge_weight_type;
 
   while (std::getline(infile, line))
   {
@@ -80,7 +81,10 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
       else if (key == "DIMENSION")
       {
         ss >> dimension;
-      }
+      }else if(key == "EDGE_WEIGHT_TYPE")
+      {
+        ss >> edge_weight_type;
+      } 
     }
     else
     {
@@ -108,5 +112,5 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
     throw std::runtime_error("No coordinates found in file: " + filename);
   }
 
-  return CoordinatesGraph(static_cast<int>(coords.size()), coords);
+  return CoordinatesGraph(static_cast<int>(coords.size()), coords, edge_weight_type);
 }

@@ -3,9 +3,10 @@
 
 CoordinatesGraph::CoordinatesGraph(
     int dimensions,
-    const std::vector<std::pair<double, double>> &coordinates) {
+    const std::vector<std::pair<double, double>> &coordinates, const std::string &edge_weight_type) {
     _dimensions = dimensions;
     _coordinates = coordinates;
+    _edge_weight_type = edge_weight_type;
 }
 
 // double CoordinatesGraph::tourDistance() { 
