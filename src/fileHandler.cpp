@@ -7,16 +7,15 @@
 
 #include "coordinatesGraph.hpp"
 
-const std::string FileHandler::_input_extension = ".tsp";
-const std::string FileHandler::_output_extension = ".tour";
-
-bool FileHandler::fileWrite(const std::string& file_name,
-                            const std::vector<int>& tour_path) {
-  std::string filename = file_name + _output_extension;
+bool FileHandler::fileWrite(const std::string &file_name,
+                            const std::vector<int> &tour_path)
+{
+  std::string filename = file_name;
 
   std::ofstream outfile(filename);
 
-  if (!outfile.is_open()) {
+  if (!outfile.is_open())
+  {
     std::cerr << "Cannot open file for writing" << std::endl;
     return false;
   }
@@ -26,7 +25,8 @@ bool FileHandler::fileWrite(const std::string& file_name,
   outfile << "DIMENSION : " << tour_path.size() << "\n";
   outfile << "TOUR_SECTION\n";
 
-  for (int node : tour_path) {
+  for (int node : tour_path)
+  {
     outfile << node << "\n";
   }
 
@@ -39,10 +39,12 @@ bool FileHandler::fileWrite(const std::string& file_name,
   return true;
 }
 
-CoordinatesGraph FileHandler::fileRead(const std::string& file_name) {
-  std::string filename = file_name + _input_extension;
+CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
+{
+  std::string filename = file_name;
   std::ifstream infile(filename);
-  if (!infile) {
+  if (!infile)
+  {
     throw std::runtime_error("Error opening the file: " + filename);
   }
 
@@ -52,12 +54,17 @@ CoordinatesGraph FileHandler::fileRead(const std::string& file_name) {
   bool reading_coords = false;
   std::string tspName;
 
-  while (std::getline(infile, line)) {
-    if (line.empty()) continue;
-    if (line.find("EOF") != std::string::npos) break;
+  while (std::getline(infile, line))
+  {
+    if (line.empty())
+      continue;
+    if (line.find("EOF") != std::string::npos)
+      break;
 
-    if (!reading_coords) {
-      if (line.find("NODE_COORD_SECTION") != std::string::npos) {
+    if (!reading_coords)
+    {
+      if (line.find("NODE_COORD_SECTION") != std::string::npos)
+      {
         reading_coords = true;
         coords.resize(dimension);
         continue;
@@ -66,19 +73,27 @@ CoordinatesGraph FileHandler::fileRead(const std::string& file_name) {
       std::stringstream ss(line);
       std::string key, colon;
       ss >> key >> colon;
-      if (key == "NAME") {
+      if (key == "NAME")
+      {
         ss >> tspName;
-      } else if (key == "DIMENSION") {
+      }
+      else if (key == "DIMENSION")
+      {
         ss >> dimension;
       }
-    } else {
+    }
+    else
+    {
       std::stringstream ss(line);
       int id;
       double x, y;
 
-      if (ss >> id >> x >> y) {
-        if (id < 1) continue;
-        if (static_cast<std::size_t>(id) > coords.size()) {
+      if (ss >> id >> x >> y)
+      {
+        if (id < 1)
+          continue;
+        if (static_cast<std::size_t>(id) > coords.size())
+        {
           coords.resize(id);
         }
         coords[id - 1] = {x, y};
@@ -88,7 +103,8 @@ CoordinatesGraph FileHandler::fileRead(const std::string& file_name) {
 
   infile.close();
 
-  if (coords.empty()) {
+  if (coords.empty())
+  {
     throw std::runtime_error("No coordinates found in file: " + filename);
   }
 

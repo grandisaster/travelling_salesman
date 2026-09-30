@@ -1,0 +1,3 @@
+build/
+TSP-instances/
+*.tour
