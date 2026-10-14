@@ -4,8 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
-#include "coordinatesGraph.hpp"
+#include <algorithm>
 
 bool FileHandler::fileWrite(const std::string &file_name,
                             const std::vector<int> &tour_path)
@@ -70,10 +69,10 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
         coords.resize(dimension);
         continue;
       }
-
+      std::replace(line.begin(), line.end(), ':', ' ');
       std::stringstream ss(line);
-      std::string key, colon;
-      ss >> key >> colon;
+      std::string key;
+      ss >> key;
       if (key == "NAME")
       {
         ss >> tspName;
@@ -81,10 +80,11 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
       else if (key == "DIMENSION")
       {
         ss >> dimension;
-      }else if(key == "EDGE_WEIGHT_TYPE")
+      }
+      else if (key == "EDGE_WEIGHT_TYPE")
       {
         ss >> edge_weight_type;
-      } 
+      }
     }
     else
     {

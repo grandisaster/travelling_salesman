@@ -1,3 +1,4 @@
 build/
 TSP-instances/
 *.tour
+CLAUDE.md
