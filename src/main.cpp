@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
             std::cerr << "Cannot write tour file: " << output << std::endl;
             return 1;
         }
+        std::cout << "File written successfully" << std::endl;
     }
     catch (const std::exception &error)
     {

@@ -1,7 +1,6 @@
 #include "fileHandler.hpp"
 
 #include <algorithm>
-#include <exception>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -112,26 +111,17 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
         }
         else
         {
-            std::string value;
-            row >> value;
             if (key == "DIMENSION")
             {
-                try
-                {
-                    dimension = std::stoi(value);
-                }
-                catch (const std::exception &)
-                {
-                    throw std::runtime_error("Invalid DIMENSION in file: " + file_name);
-                }
+                row >> dimension;
             }
             else if (key == "EDGE_WEIGHT_TYPE")
             {
-                edge_weight_type = value;
+                row >> edge_weight_type;
             }
             else if (key == "EDGE_WEIGHT_FORMAT")
             {
-                edge_weight_format = value;
+                row >> edge_weight_format;
             }
         }
     }
