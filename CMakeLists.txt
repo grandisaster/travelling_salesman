@@ -6,20 +6,24 @@ project(TSPsolver)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # --- Debug/Release configuration ---
+# By default, build in Release mode
+# To set the build type to Debug, use:
+#      cmake -DCMAKE_BUILD_TYPE=Debug ..
+# ------------------------------------
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
 # --- Compiler flags ---
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "/W4 /EHsc")
-else()
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror")
-  set(CMAKE_CXX_FLAGS_DEBUG "-g")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-endif()
+# Warning flags for all build types
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+# Debugging flags for Debug build
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+# Optimization flags for Release build
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # --- Directories ---
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -30,19 +34,32 @@ set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 file(GLOB SOURCES "${SOURCE_DIR}/*.cpp")
 file(GLOB HEADERS "${INCLUDE_DIR}/*.hpp")
 
+# Remove main.cpp from SOURCES
+# We must do so because main.cpp is not part of the library
+# and should not be compiled into it.
+# Instead, it will be compiled into the main executable.
+# Add here any other source files that should be excluded from the library.
 list(REMOVE_ITEM SOURCES "${SOURCE_DIR}/main.cpp")
 
-# --- Library ---
-add_library(tsp_lib STATIC ${SOURCES} ${HEADERS})
-target_include_directories(tsp_lib PUBLIC ${INCLUDE_DIR})
+# --- Including libraries ---
+set(LIB_NAME tsp_lib)
+add_library(${LIB_NAME} STATIC ${SOURCES} ${HEADERS})
+target_include_directories(${LIB_NAME} PUBLIC ${INCLUDE_DIR})
 
 # --- Main executable ---
 add_executable(TSPsolver ${SOURCE_DIR}/main.cpp)
-target_link_libraries(TSPsolver PRIVATE tsp_lib)
+target_link_libraries(TSPsolver PRIVATE ${LIB_NAME})
+
+
+# --- External dependencies ---
+# Example with Boost program options (uncomment if needed)
+# find_package(Boost REQUIRED COMPONENTS program_options)
+# target_link_libraries(${PROJECT_NAME} PRIVATE Boost::boost)
 
 # --- Tests ---
 enable_testing()
 file(GLOB TEST_SOURCES "${TEST_DIR}/*.cpp")
 add_executable(tests ${TEST_SOURCES})
-target_link_libraries(tests PRIVATE tsp_lib)
+target_link_libraries(tests PRIVATE ${LIB_NAME})
+target_include_directories(tests PRIVATE ${INCLUDE_DIR})
 add_test(NAME tests COMMAND tests)

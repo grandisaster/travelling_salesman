@@ -48,7 +48,7 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
     std::string edge_weight_format;
     std::vector<std::pair<double, double>> coordinates;
     std::vector<bool> coordinate_seen;
-    std::vector<int> explicit_weights;
+    std::vector<int> weights;
     std::string section;
     std::string line;
 
@@ -107,7 +107,7 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
             int weight;
             while (weight_row >> weight)
             {
-                explicit_weights.push_back(weight);
+                weights.push_back(weight);
             }
         }
         else
@@ -158,9 +158,9 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
         static_cast<std::size_t>(dimension) * (dimension + 1) / 2;
     if (edge_weight_type != "EXPLICIT" ||
         edge_weight_format != "LOWER_DIAG_ROW" ||
-        explicit_weights.size() != expected_weights)
+        weights.size() != expected_weights)
     {
         throw std::runtime_error("Invalid explicit weights in file: " + file_name);
     }
-    return CoordinatesGraph(dimension, {}, edge_weight_type, explicit_weights);
+    return CoordinatesGraph(dimension, {}, edge_weight_type, weights);
 }
