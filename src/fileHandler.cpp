@@ -1,116 +1,157 @@
 #include "fileHandler.hpp"
 
+#include <algorithm>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
-#include <algorithm>
+#include <string>
+#include <vector>
 
 bool FileHandler::fileWrite(const std::string &file_name,
                             const std::vector<int> &tour_path)
 {
-  std::string filename = file_name;
-
-  std::ofstream outfile(filename);
-
-  if (!outfile.is_open())
+  std::ofstream outfile(file_name);
+  if (!outfile)
   {
-    std::cerr << "Cannot open file for writing" << std::endl;
     return false;
   }
 
-  outfile << "NAME : " << file_name << "\n";
+  const std::size_t separator = file_name.find_last_of("/\\");
+  const std::string name = separator == std::string::npos
+                               ? file_name
+                               : file_name.substr(separator + 1);
+
+  outfile << "NAME : " << name << "\n";
   outfile << "TYPE : TOUR\n";
   outfile << "DIMENSION : " << tour_path.size() << "\n";
   outfile << "TOUR_SECTION\n";
-
-  for (int node : tour_path)
+  for (int city : tour_path)
   {
-    outfile << node << "\n";
+    outfile << city << "\n";
   }
+  outfile << "-1\nEOF\n";
 
-  outfile << "-1\n";
-  outfile << "EOF\n";
-
-  outfile.close();
-
-  std::cout << "File written successfully" << std::endl;
-  return true;
+  return static_cast<bool>(outfile);
 }
 
 CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
 {
-  std::string filename = file_name;
-  std::ifstream infile(filename);
+  std::ifstream infile(file_name);
   if (!infile)
   {
-    throw std::runtime_error("Error opening the file: " + filename);
+    throw std::runtime_error("Error opening the file: " + file_name);
   }
 
-  std::string line;
   int dimension = 0;
-  std::vector<std::pair<double, double>> coords;
-  bool reading_coords = false;
-  std::string tspName;
   std::string edge_weight_type;
+  std::string edge_weight_format;
+  std::vector<std::pair<double, double>> coordinates;
+  std::vector<bool> coordinate_seen;
+  std::vector<int> explicit_weights;
+  std::string section;
+  std::string line;
 
   while (std::getline(infile, line))
   {
-    if (line.empty())
-      continue;
-    if (line.find("EOF") != std::string::npos)
-      break;
+    std::replace(line.begin(), line.end(), ':', ' ');
+    std::istringstream row(line);
+    std::string key;
+    row >> key;
 
-    if (!reading_coords)
+    if (key.empty())
     {
-      if (line.find("NODE_COORD_SECTION") != std::string::npos)
+      continue;
+    }
+    if (key == "EOF")
+    {
+      break;
+    }
+    if (key == "NODE_COORD_SECTION")
+    {
+      if (dimension <= 0)
       {
-        reading_coords = true;
-        coords.resize(dimension);
-        continue;
+        throw std::runtime_error("Missing DIMENSION in file: " + file_name);
       }
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::stringstream ss(line);
-      std::string key;
-      ss >> key;
-      if (key == "NAME")
+      coordinates.resize(dimension);
+      coordinate_seen.resize(dimension, false);
+      section = "coordinates";
+      continue;
+    }
+    if (key == "EDGE_WEIGHT_SECTION")
+    {
+      section = "weights";
+      continue;
+    }
+    if (key.find("_SECTION") != std::string::npos)
+    {
+      section.clear();
+      continue;
+    }
+
+    if (section == "coordinates")
+    {
+      std::istringstream coordinate_row(line);
+      int id;
+      double x, y;
+      if (!(coordinate_row >> id >> x >> y) || id < 1 || id > dimension)
       {
-        ss >> tspName;
+        throw std::runtime_error("Invalid coordinate in file: " + file_name);
       }
-      else if (key == "DIMENSION")
+      coordinates[id - 1] = {x, y};
+      coordinate_seen[id - 1] = true;
+    }
+    else if (section == "weights")
+    {
+      std::istringstream weight_row(line);
+      int weight;
+      while (weight_row >> weight)
       {
-        ss >> dimension;
-      }
-      else if (key == "EDGE_WEIGHT_TYPE")
-      {
-        ss >> edge_weight_type;
+        explicit_weights.push_back(weight);
       }
     }
     else
     {
-      std::stringstream ss(line);
-      int id;
-      double x, y;
-
-      if (ss >> id >> x >> y)
+      std::string value;
+      row >> value;
+      if (key == "DIMENSION")
       {
-        if (id < 1)
-          continue;
-        if (static_cast<std::size_t>(id) > coords.size())
-        {
-          coords.resize(id);
-        }
-        coords[id - 1] = {x, y};
+        dimension = std::stoi(value);
+      }
+      else if (key == "EDGE_WEIGHT_TYPE")
+      {
+        edge_weight_type = value;
+      }
+      else if (key == "EDGE_WEIGHT_FORMAT")
+      {
+        edge_weight_format = value;
       }
     }
   }
 
-  infile.close();
-
-  if (coords.empty())
+  if (dimension <= 0)
   {
-    throw std::runtime_error("No coordinates found in file: " + filename);
+    throw std::runtime_error("Missing or invalid DIMENSION in file: " + file_name);
+  }
+  if (!coordinates.empty())
+  {
+    if (std::find(coordinate_seen.begin(), coordinate_seen.end(), false) !=
+        coordinate_seen.end())
+    {
+      throw std::runtime_error("Missing coordinates in file: " + file_name);
+    }
+    if (edge_weight_type.empty())
+    {
+      edge_weight_type = "EUC_2D";
+    }
+    return CoordinatesGraph(dimension, coordinates, edge_weight_type);
   }
 
-  return CoordinatesGraph(static_cast<int>(coords.size()), coords, edge_weight_type);
+  if (edge_weight_type != "EXPLICIT" ||
+      edge_weight_format != "LOWER_DIAG_ROW" ||
+      explicit_weights.size() !=
+          static_cast<std::size_t>(dimension) * (dimension + 1) / 2)
+  {
+    throw std::runtime_error("Invalid explicit weights in file: " + file_name);
+  }
+  return CoordinatesGraph(dimension, {}, edge_weight_type, explicit_weights);
 }
