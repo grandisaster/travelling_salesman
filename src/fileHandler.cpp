@@ -1,11 +1,16 @@
 #include "fileHandler.hpp"
 
+#include "Graph.hpp"
+#include "CoordinateGraph.hpp"
+#include "ExplicitGraph.hpp"
+
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <memory>
 
 bool FileHandler::fileWrite(const std::string &file_name,
                             const std::vector<int> &tour_path)
@@ -34,7 +39,7 @@ bool FileHandler::fileWrite(const std::string &file_name,
     return static_cast<bool>(outfile);
 }
 
-CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
+std::unique_ptr<Graph> FileHandler::fileRead(const std::string &file_name)
 {
     std::ifstream infile(file_name);
     if (!infile)
@@ -141,7 +146,24 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
         {
             edge_weight_type = "EUC_2D";
         }
-        return CoordinatesGraph(dimension, coordinates, edge_weight_type);
+        CoordinateGraph::Metric metric;
+        if (edge_weight_type == "EUC_2D")
+        {
+            metric = metrics::euc2d;
+        }
+        else if (edge_weight_type == "GEO")
+        {
+            metric = metrics::geo;
+        }
+        else if (edge_weight_type == "ATT")
+        {
+            metric = metrics::att;
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported EDGE_WEIGHT_TYPE: " + edge_weight_type);
+        }
+        return std::make_unique<CoordinateGraph>(coordinates, metric);
     }
 
     const std::size_t expected_weights =
@@ -152,5 +174,5 @@ CoordinatesGraph FileHandler::fileRead(const std::string &file_name)
     {
         throw std::runtime_error("Invalid explicit weights in file: " + file_name);
     }
-    return CoordinatesGraph(dimension, {}, edge_weight_type, weights);
+    return std::make_unique<ExplicitGraph>(dimension, weights);
 }

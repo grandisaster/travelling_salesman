@@ -26,4 +26,4 @@ bash build-TSPsolver.sh                                        # build into ./bu
 |-------------|-----------------------------------------------|
 | `trivial`   | Visits the cities in index order (baseline)   |
 | `held-karp` | Exact dynamic programming, O(n² 2ⁿ)           |
-| *TBD*       | At least one extra method (e.g. a heuristic)  |
+| `nn-2opt`       | Nearest neighbour + 2-OPT algorithm  |
