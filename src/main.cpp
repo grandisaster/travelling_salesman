@@ -8,6 +8,7 @@
 #include "fileHandler.hpp"
 #include "TrivialSolver.hpp"
 #include "HeldKarp.hpp"
+#include "NearestNeighbour.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -49,6 +50,10 @@ int main(int argc, char *argv[])
         else if (method == "held-karp")
         {
             solver = std::make_unique<HeldKarp>();
+        }
+        else if (method == "nn")
+        {
+            solver = std::make_unique<NearestNeighbour>();
         }
         else
         {
