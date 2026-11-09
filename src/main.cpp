@@ -3,8 +3,11 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <memory>
 #include <vector>
 #include "fileHandler.hpp"
+#include "TrivialSolver.hpp"
+#include "HeldKarp.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -36,17 +39,28 @@ int main(int argc, char *argv[])
 
     try
     {
-        const CoordinatesGraph graph = FileHandler::fileRead(input);
+        std::unique_ptr<Graph> graph = FileHandler::fileRead(input);
+        std::unique_ptr<Solver> solver;
 
-        std::vector<int> tour;
         if (method == "trivial")
         {
-            tour = graph.visitCities();
+            solver = std::make_unique<TrivialSolver>();
+        }
+        else if (method == "held-karp")
+        {
+            solver = std::make_unique<HeldKarp>();
         }
         else
         {
             throw std::runtime_error("not yet implemented");
         }
+
+        std::vector<int> tour = solver->solve(*graph);
+        for (int &city : tour)
+        {
+            city += 1;
+        }
+
         std::cout << "Cities read: " << tour.size() << std::endl;
 
         if (!FileHandler::fileWrite(output, tour))

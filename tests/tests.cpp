@@ -1,5 +1,10 @@
 #include "fileHandler.hpp"
+#include "ExplicitGraph.hpp"
+#include "HeldKarp.hpp"
+#include "TrivialSolver.hpp"
+#include "metrics.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -74,8 +79,9 @@ namespace
             "2 2.0 2.0\n"
             "EOF\n");
 
-        const CoordinatesGraph graph = FileHandler::fileRead(input.path().string());
-        require(graph.visitCities() == std::vector<int>({1, 2, 3}),
+        const auto graph = FileHandler::fileRead(input.path().string());
+        require(graph->dimension() == 3, "Coordinate graph must have 3 cities");
+        require(TrivialSolver().solve(*graph) == std::vector<int>({0, 1, 2}),
                 "Trivial method must return city indices in ascending order");
     }
 
@@ -95,8 +101,11 @@ namespace
             "1 10.0 10.0\n"
             "EOF\n");
 
-        const CoordinatesGraph graph = FileHandler::fileRead(input.path().string());
-        require(graph.visitCities() == std::vector<int>({1, 2, 3}),
+        const auto graph = FileHandler::fileRead(input.path().string());
+        require(graph->distance(1, 0) == 4 && graph->distance(0, 2) == 8 &&
+                    graph->distance(2, 1) == 9 && graph->distance(1, 1) == 0,
+                "Explicit weights must be read into a symmetric matrix");
+        require(TrivialSolver().solve(*graph) == std::vector<int>({0, 1, 2}),
                 "Explicit instances must be accepted by the trivial method");
     }
 
@@ -142,6 +151,73 @@ namespace
                 "Tour output must contain the required TSPLIB header and terminators");
     }
 
+    // Tests below generated with Claude (2026-11-09)
+    int tourLength(const Graph &graph, const std::vector<int> &tour)
+    {
+        int length = 0;
+        for (std::size_t i = 0; i < tour.size(); ++i)
+        {
+            length += graph.distance(tour[i], tour[(i + 1) % tour.size()]);
+        }
+        return length;
+    }
+
+    bool isPermutation(std::vector<int> tour, int n)
+    {
+        std::sort(tour.begin(), tour.end());
+        std::vector<int> expected(n);
+        for (int i = 0; i < n; ++i)
+        {
+            expected[i] = i;
+        }
+        return tour == expected;
+    }
+
+    void testMetrics()
+    {
+        require(metrics::euc2d({0.0, 0.0}, {3.0, 4.0}) == 5,
+                "EUC_2D distance between (0,0) and (3,4) must be 5");
+        // burma14, cities 1 and 2 (TSPLIB)
+        require(metrics::geo({16.47, 96.10}, {16.47, 94.44}) == 153,
+                "GEO distance between burma14 cities 1 and 2 must be 153");
+    }
+
+    void testHeldKarpOnExample()
+    {
+        // 4-city example from the project statement (A, B, C, D): optimum is 18
+        const ExplicitGraph graph(4, {0, 5, 0, 8, 4, 0, 6, 7, 3, 0});
+        const std::vector<int> tour = HeldKarp().solve(graph);
+        require(isPermutation(tour, 4), "Held-Karp must visit every city exactly once");
+        require(tour.front() == 0, "Held-Karp tour must start at city 0");
+        require(tourLength(graph, tour) == 18, "Held-Karp must find the optimal tour (18)");
+    }
+
+    void testHeldKarpSmallGraphs()
+    {
+        for (int n = 1; n <= 3; ++n)
+        {
+            const ExplicitGraph graph(n, std::vector<int>(n * (n + 1) / 2, 1));
+            require(isPermutation(HeldKarp().solve(graph), n),
+                    "Held-Karp must return a valid tour for n = " + std::to_string(n));
+        }
+    }
+
+    void testHeldKarpRejectsLargeGraphs()
+    {
+        const int n = HeldKarp::MAX_N + 1;
+        const ExplicitGraph graph(n, std::vector<int>(n * (n + 1) / 2, 1));
+        bool rejected = false;
+        try
+        {
+            static_cast<void>(HeldKarp().solve(graph));
+        }
+        catch (const std::invalid_argument &)
+        {
+            rejected = true;
+        }
+        require(rejected, "Held-Karp must reject graphs larger than MAX_N");
+    }
+
 }
 
 int main()
@@ -151,6 +227,10 @@ int main()
         {"explicit lower-diagonal input", testExplicitLowerDiagonalInput},
         {"malformed input rejection", testRejectsMalformedInputs},
         {"valid tour output", testWritesValidTourFile},
+        {"TSPLIB metrics", testMetrics},
+        {"Held-Karp on statement example", testHeldKarpOnExample},
+        {"Held-Karp on tiny graphs", testHeldKarpSmallGraphs},
+        {"Held-Karp size limit", testHeldKarpRejectsLargeGraphs},
     };
 
     std::size_t failures = 0;
