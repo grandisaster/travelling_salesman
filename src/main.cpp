@@ -9,6 +9,7 @@
 #include "TrivialSolver.hpp"
 #include "HeldKarp.hpp"
 #include "NearestNeighbour.hpp"
+#include "TwoOpt.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     const std::string input = argv[1];
     const std::string output = argv[2];
     std::string method = "trivial";
-    const std::string method_list[] = {"trivial", "held-karp"};
+    const std::string method_list[] = {"trivial", "held-karp", "nn", "nn-2opt"};
 
     if (argc == 5)
     {
@@ -54,6 +55,10 @@ int main(int argc, char *argv[])
         else if (method == "nn")
         {
             solver = std::make_unique<NearestNeighbour>();
+        }
+        else if (method == "nn-2opt")
+        {
+            solver = std::make_unique<TwoOpt>();
         }
         else
         {
